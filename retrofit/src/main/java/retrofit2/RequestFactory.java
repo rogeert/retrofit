@@ -61,6 +61,7 @@ import retrofit2.http.QueryMap;
 import retrofit2.http.QueryName;
 import retrofit2.http.Tag;
 import retrofit2.http.Url;
+import retrofit2.http.ObjectQuery;
 
 final class RequestFactory {
   static RequestFactory parseAnnotations(Retrofit retrofit, Class<?> service, Method method) {
@@ -817,6 +818,10 @@ final class RequestFactory {
         }
 
         return new ParameterHandler.Tag<>(tagType);
+      }else if (annotation instanceof ObjectQuery) {
+        validateResolvableType(p, type);
+        boolean encoded = ((ObjectQuery) annotation).encoded();
+        return new ParameterHandler.ObjectQueryParameter<>(encoded);
       }
 
       return null; // Not a Retrofit annotation.

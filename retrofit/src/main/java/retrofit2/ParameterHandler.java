@@ -18,6 +18,7 @@ package retrofit2;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -453,6 +454,59 @@ abstract class ParameterHandler<T> {
     @Override
     void apply(RequestBuilder builder, @Nullable T value) {
       builder.addTag(cls, value);
+    }
+  }
+
+  static final class ObjectQueryParameter<Object> extends ParameterHandler<Object> {
+    private final boolean encoded;
+
+    ObjectQueryParameter(boolean encoded) {
+      super();
+      this.encoded = encoded;
+    }
+
+    @Override
+    void apply(RequestBuilder builder, @Nullable Object object) {
+      if (object == null) return;
+
+      Map<String, String> map = new HashMap<>();
+      for (java.lang.reflect.Field field : object.getClass().getDeclaredFields()) {
+        field.setAccessible(true);
+        try {
+          java.lang.Object value = field.get(object);
+          if (value != null) {
+            Class<?> fieldType = field.getType();
+            if (fieldType.isEnum()) {
+              map.put(field.getName(), ((Enum<?>) value).name());
+            } else if (fieldType.isPrimitive() || isWrapperType(fieldType)) {
+              map.put(field.getName(), value.toString());
+            } else {
+              map.put(field.getName(), value.toString());
+            }
+          }
+        } catch (IllegalAccessException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      for (Map.Entry<String, String> entry : map.entrySet()) {
+        String entryKey = entry.getKey();
+        if (entryKey == null) {
+          throw new RuntimeException("Query map contained null key.");
+        }
+        String entryValue = entry.getValue();
+        if (entryValue == null) {
+          throw new RuntimeException("Query map contained null value for key '" + entryKey + "'.");
+        }
+
+        builder.addQueryParam(entryKey, entryValue, encoded);
+      }
+    }
+
+    private boolean isWrapperType(Class<?> clazz) {
+      return clazz.equals(Boolean.class) || clazz.equals(Integer.class) || clazz.equals(Character.class) ||
+        clazz.equals(Byte.class) || clazz.equals(Short.class) || clazz.equals(Double.class) ||
+        clazz.equals(Long.class) || clazz.equals(Float.class);
     }
   }
 }
