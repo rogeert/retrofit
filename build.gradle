@@ -19,6 +19,45 @@ buildscript {
   }
 }
 
+plugins {
+  id('maven-publish')
+}
+
+project("retrofit"){
+  apply plugin: 'maven-publish'
+
+  publishing {
+    repositories {
+      maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/rogeert/retrofit")
+        credentials {
+          username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+          password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+        }
+      }
+    }
+  }
+}
+
+project("retrofit-converters:jackson"){
+  apply plugin: 'maven-publish'
+
+  publishing {
+    repositories {
+      maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/rogeert/retrofit")
+        credentials {
+          username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+          password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+        }
+      }
+    }
+  }
+}
+
+
 subprojects {
   tasks.withType(JavaCompile).configureEach { task ->
     task.options.encoding = 'UTF-8'
@@ -97,29 +136,4 @@ subprojects {
 
 tasks.create('clean', Delete) {
   delete = layout.buildDirectory
-}
-
-tasks.create('prepareWebsite', Copy) {
-  description = 'Combines the static website along with generated documentation'
-  group = JavaBasePlugin.DOCUMENTATION_GROUP
-
-  into layout.buildDirectory.dir('docs/site')
-  from('website')
-
-  gradle.projectsEvaluated {
-    into('2.x') {
-      subprojects { subproject ->
-        if (subproject.name == 'retrofit-bom') return
-        if (!subproject.plugins.hasPlugin('com.vanniktech.maven.publish')) return
-
-        into(subproject.POM_ARTIFACT_ID) {
-          if (subproject.plugins.hasPlugin('org.jetbrains.dokka')) {
-            from subproject.tasks.named('dokkaHtml').flatMap { it.outputDirectory }
-          } else {
-            from subproject.tasks.named('javadoc').map { it.destinationDir }
-          }
-        }
-      }
-    }
-  }
 }
